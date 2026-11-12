@@ -75,8 +75,9 @@ builder is maintained in this repository.
 This API was tested by reloading the live Naraka installation with the current
 c00f48ca subdivision Mod. It keeps the original position-deformation and normal
 compute shaders, with generated per-Mod input tables. It does not identify or
-modify every model automatically. The export-side table generator is not part
-of this package yet.
+modify every model automatically. The export-side table generator is provided
+by MIMIBlender 1.0.84 or newer, using workspace metadata extracted by MMT 1.0.152
+or newer. Use NBP-Package V0.0.4 or newer with these generated Mods.
 
 Mods check `$\NBPv1\native_postskin_api == 1` before calling the API. This is
 an integer ABI revision, separate from package release versions. A Mod requiring
