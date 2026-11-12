@@ -63,3 +63,65 @@ Take your own risk to use it.
 # Notice
 
 This package is designed to work with SSMT,don't use it manually unless you know what you are doing.
+
+
+# Native Post-Skin Runtime API (revision 1)
+
+`Core/NBP/NativePostSkin/Runtime.ini` provides the `NBPv1` namespace. The
+package includes it from `d3dx.ini`. Ship the entire `Core` directory alongside
+`d3dx.ini`; copying only the INI is no longer sufficient. No release archive
+builder is maintained in this repository.
+
+This API was tested by reloading the live Naraka installation with the current
+c00f48ca subdivision Mod. It keeps the original position-deformation and normal
+compute shaders, with generated per-Mod input tables. It does not identify or
+modify every model automatically. The export-side table generator is not part
+of this package yet.
+
+Mods check `$\NBPv1\native_postskin_api == 1` before calling the API. This is
+an integer ABI revision, separate from package release versions. A Mod requiring
+this API must declare that dependency to users; this revision does not provide
+an on-screen missing-runtime notification.
+
+## Resource ownership and calls
+
+All names below are exposed as `Resource\NBPv1\<name>`. The Mod assigns each
+with `= ref Resource<its-own-name>` immediately before the synchronous call.
+Mutable storage belongs to the Mod; the Runtime only holds temporary aliases.
+The caller must select the intended native shader and output UAV first and must
+scope the invocation to its own model. Original skinning retains the current
+bone SRV by reference before the game's later passes bind different inputs.
+
+| Call | Required resource aliases | Dispatch variables |
+| --- | --- | --- |
+| `CommandList\NBPv1\DeformNative` | Bones, Frames, PositionCB, PositionBatch, PositionMapping, PositionInfluences, PositionMembers, PositionOffsets | `$\NBPv1\frame_dispatch`, `$\NBPv1\vertex_dispatch` |
+| `CommandList\NBPv1\RecalculateNormals` | Shadow, LimitsCB, NormalCB, NormalTriangles, NormalTargets, NormalMembers, NormalOffsets, NormalAdjacency, NormalAdjacencyOffsets | `$\NBPv1\vertex_dispatch`, `$\NBPv1\normal_dispatch` |
+
+`DeformNative` expects the game's original 48-byte parameter CB and simulation
+frame SRV in cs-cb0/cs-t4 on entry. Bones is a 64-byte structured matrix SRV.
+Frames is a Mod-allocated 80-byte structured UAV/SRV holding simulation frames
+plus two families of bone matrices. PositionCB replaces the native count/blend
+parameters after those original parameters are consumed. The Mod's generated
+signed influence weights account for the original per-vertex blend.
+
+`RecalculateNormals` expects the Mod's main raw output UAV in cs-u0. Shadow is a
+separate equally sized raw UAV/SRV; LimitsCB begins with the render vertex count.
+The current helper scales shadow positions by two to compensate triangle area
+for the tested four-way subdivision fixture. This fixed treatment is not a
+general rule for arbitrary topology or model scales. Only normal xyz is copied
+back; main positions and tangents remain untouched.
+
+Both calls replace the game's dispatch with a manual native dispatch. All
+borrowed helper slots (cs-t50, cs-t51, cs-u5 and cs-cb13) are restored. Main native
+pass slots intentionally retain the call's result/bindings. Temporary Package
+resource aliases and dispatch variables are cleared before returning, so the
+next Mod must supply a complete call context. Boundary dump commands only take
+effect during frame analysis and support runtime diagnostics.
+
+## Compatibility boundary
+
+API revision 1 was validated for the supplied two native shader families and
+40-byte P12/N12/TA16 output. Generators must validate layout, frame count, mapping
+ranges, adjacency and allocation sizes before invoking it. This package does
+not fabricate bindings for arbitrary newly authored vertices. Old Mods without
+these API calls keep their existing behavior.
