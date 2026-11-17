@@ -17,7 +17,8 @@ regenerate the VSCheck list for every model you extract. The split described bel
 NBP-Package V0.0.5 or newer.
 
 - `[ShaderRegexEnableTextureOverrides]` (`vs_4_0` - `vs_5_1`) runs `[CommandListSkin]`, which enables
-  the overrides on `vb0` - `vb5` and `ib` only. The texture slots are no longer checked here.
+  the overrides on `vb0` - `vb5` and `ib` only. The texture slots are no longer checked here. The
+  shader `5927c81f6515eb11` is excluded from that regex, so it no longer runs the skin check.
 - `[CommandListSkinCheckTextureSlot]` (`if $costume_mods`) checks the texture overrides on
   `ps-t0` - `ps-t19`. It is no longer run globally: a Mod's own IB section runs it directly before
   `ib = ...`, so the texture slots are checked only for the draw the Mod replaces. This needs a Mod
